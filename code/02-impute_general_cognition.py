@@ -9,12 +9,11 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 pd.options.mode.chained_assignment = None
 
 import GC_transform
-
+from sklearn.preprocessing import MinMaxScaler
 data_path = '/home/marcelo/GitRepos/Tesis/data/'
-df = pd.read_csv(data_path + 'clean_data.csv')
-df = df.dropna(subset=['age', 'years_education']).reset_index()
+df = pd.read_csv(data_path + 'predata.csv')
+# df = df.dropna(subset=['year_birth', 'years_education']).reset_index()
 df.head()
-
 df.isna().sum()[df.isna().sum()>0]
 
 df.loc[(df['mmse_total'].notna() ) | (df['moca_total'].notna() ) | (df['aceiii_total'].notna() ) ].shape
@@ -65,7 +64,37 @@ df['ace_lw'] = np.where(df['aceiii_total'].isna(), ace_lw, df['aceiii_total'])
 
 
 df.isna().sum()[df.isna().sum()>0]
-df.info()
+
+#### general Functionality: Barthel + Pfeffer
+# Barthel > es mejor
+# Pfeffer < es mejor
+# 1- escalamos por min-max ambas escalas
+# 2- Invertimos los resultados de Barrthel
+# 3- Sumamos las escalas y creamos la nueva columna
+# 4- para los casos que tienen tanto barthel como pfeffer dividimos por 2
+
+# ¿Cuántos casos tenemos para el #4 señalado arriba? # 0
+df.loc[(df['barthel_total'].notna()) & ( df['pfeffer_total'].notna() )].shape[0]
+
+scaler = MinMaxScaler()
+
+s_pfeffer = scaler.fit_transform(df[['pfeffer_total']].values)
+s_barthel = scaler.fit_transform(df[['barthel_total']].values)
+s_barthel = np.where(np.isnan(s_barthel)==False, 1-s_barthel, s_barthel)
+s_barthel[np.isnan(s_barthel) == False] 
+functionality = np.where(np.isnan(s_barthel ), s_pfeffer, s_barthel)
+
+df['s_pfeffer'] = s_pfeffer
+df['s_barthel'] = s_barthel
+df['functionality'] = functionality
+
+### Sanity Check -> Ok
+df.loc[df['barthel_total'].notna(), ['barthel_total', 's_barthel']]
+df.loc[df['pfeffer_total'].notna(), ['pfeffer_total', 's_pfeffer']]
+df.loc[(df['barthel_total'].isna()) & (df['pfeffer_total'].notna()), ['barthel_total','s_barthel', 'pfeffer_total','s_pfeffer', 'functionality']]
+df.loc[(df['pfeffer_total'].isna()) & (df['barthel_total'].notna()), ['barthel_total','s_barthel', 'pfeffer_total','s_pfeffer', 'functionality']]
+# Drop s_barthel and s_pfeffer
+df = df.drop(['s_pfeffer', 's_barthel'], axis=1)
 
 df.income_sources.unique()
 
@@ -108,5 +137,8 @@ assert(income.shape[0] == df.shape[0])
 df =pd.concat([df, income], axis=1)
 
 # df = df[['site', 'id', 'diagnosis', 'year_birth', 'sex', 'aod', 'yod', 'years_education', 'laterality', 'moca_total', 'aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members', 'household_income', 'income_sources', 'Job_status', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw', 'ace_vs', 'ace_lw', 'income_s_NaN', 'income_s_1', 'income_s_2', 'income_s_3', 'income_s_4', 'income_s_5', 'income_s_6', 'income_s_7', 'income_s_8', 'income_s_9', 'income_s_10', 'income_s_11']]
+
+
+
 
 df.to_csv("/home/marcelo/GitRepos/Tesis/data/clean_data.csv",index=False)
