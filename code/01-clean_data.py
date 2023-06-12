@@ -86,6 +86,9 @@ df = df[['Site', 'id', 'diagnosis', 'year_of_birth', 'gender', 'age_onset_diseas
 df.columns=['site', 'id', 'diagnosis', 'year_birth', 'sex', 'aod','yod', 'years_education', 'laterality', 'moca_total','aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'barthel_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members', 'household_income', 'income_sources', 'Job_status']
 
 os.getcwd()
+
+df.loc[df['years_education'] == '.'] = np.nan
+
 df.to_csv('../data/predata.csv', index=False)
 
 df.loc[(df['mmse_total'].isna() ) & (df['moca_total'].isna() ) & (df['aceiii_total'].isna() ) ]#.to_csv("~/Desktop/Pre.csv", index=False)
