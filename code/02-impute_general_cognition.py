@@ -62,8 +62,26 @@ ace_lw = GC_transform.MMSE_to_ACEIII(df['mmse_lw'])
 df['ace_vs'] = np.where(df['aceiii_total'].isna(), ace_vs, df['aceiii_total'])
 df['ace_lw'] = np.where(df['aceiii_total'].isna(), ace_lw, df['aceiii_total'])
 
+### Cognition normalized and scaled
+cog_s=pd.DataFrame()
+scaler = MinMaxScaler()
+for i in ['mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw', 'ace_vs', 'ace_lw']:
+    var = scaler.fit_transform(df[[i]].values)
+    name = 's_'+i
+    cog_s[name] = var.flatten()
+
+cog_s['cognition'] = cog_s.sum(axis=1) /6
+
+cog_s['cognition'] = cog_s['cognition'].replace(0.00000000, np.nan)
+df['cognition'] = cog_s['cognition']
 
 df.isna().sum()[df.isna().sum()>0]
+
+df.loc[(df['mmse_vs'].notna()) & (df['cognition'].isna()), ['mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw', 'ace_vs', 'ace_lw']]
+
+# No sé por qué falló en los indices 172 y 173
+df.iloc[172, -1] = 0
+df.iloc[173, -1] = 0
 
 #### general Functionality: Barthel + Pfeffer
 # Barthel > es mejor
@@ -97,9 +115,6 @@ df.loc[(df['pfeffer_total'].isna()) & (df['barthel_total'].notna()), ['barthel_t
 df = df.drop(['s_pfeffer', 's_barthel'], axis=1)
 
 df.income_sources.unique()
-
-import pandas as pd
-import numpy as np
 
 str(list((range(1, 12))))
 
