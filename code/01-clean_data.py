@@ -11,7 +11,7 @@ data_path = '/home/marcelo/MEGA/RedLat/2022/Pre-existing/raw/PRE-EXISTING/'
 data_path2 = '/home/marcelo/MEGA/RedLat/2022/Pre-existing/raw/PRE-EXISTING SDH SES DATA/'
 
 files = [file for file in os.listdir(data_path) if file.endswith('xlsx')]
-f_cols= ['Site', 'id', 'diagnosis','gender', 'year_of_birth','age_onset_disease', 'year_of_diagnosis', 'years_education', 'laterality', 'moca_total',  'aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver']
+f_cols= ['Site', 'id', 'diagnosis','gender', 'year_of_birth','age_onset_disease', 'year_of_diagnosis', 'years_education', 'laterality', 'moca_total',  'aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'barthel_total','pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver']
 
 
 df = pd.DataFrame()
@@ -81,12 +81,12 @@ df['nationality'].replace({'Peruana': 'Peruana', 'ESPAÑOLA': 'Española', 'ALEM
 df = df.drop(['education_years'], axis=1)
 df.isna().sum()[df.isna().sum()>0].sort_values()
 df.columns
-df = df[['Site', 'id', 'diagnosis', 'year_of_birth', 'gender', 'age_onset_disease','year_of_diagnosis', 'years_education', 'laterality', 'moca_total', 'aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members','household_income', 'income_sources', 'Job_status']]
+df = df[['Site', 'id', 'diagnosis', 'year_of_birth', 'gender', 'age_onset_disease','year_of_diagnosis', 'years_education', 'laterality', 'moca_total', 'aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'barthel_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members','household_income', 'income_sources', 'Job_status']]
 
-df.columns=['site', 'id', 'diagnosis', 'year_birth', 'sex', 'aod','yod', 'years_education', 'laterality', 'moca_total','aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members', 'household_income', 'income_sources', 'Job_status']
+df.columns=['site', 'id', 'diagnosis', 'year_birth', 'sex', 'aod','yod', 'years_education', 'laterality', 'moca_total','aceiii_total', 'mmse_total', 'ifs_total_score', 'mini_sea_total', 'barthel_total', 'pfeffer_total', 'cdr_sumofboxes', 'cdr_global', 'npi_total', 'npi_total_caregiver', 'nationality', 'country_of_residence', 'marital_status', 'n_children', 'household_members', 'household_income', 'income_sources', 'Job_status']
 
 os.getcwd()
-df.to_csv('./Tesis/data/clean_data.csv', index=False)
+df.to_csv('../data/predata.csv', index=False)
 
 df.loc[(df['mmse_total'].isna() ) & (df['moca_total'].isna() ) & (df['aceiii_total'].isna() ) ]#.to_csv("~/Desktop/Pre.csv", index=False)
 
