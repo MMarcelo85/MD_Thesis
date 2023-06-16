@@ -153,7 +153,6 @@ test_df = df.dropna().copy()
 cols =['years_education', 'year_birth', 'cognition', 'cdr_global',
        'functionality', 'ifs_total_score', 'ifs_total_score', 'mmse_vs', 'moca_vs', 'ace_vs']
 
-df.columns
 
 res = {i:[] for i in cols}
 res
@@ -171,5 +170,3 @@ for i in res.keys():
 res_df['Vars'] = list(res.keys())
 res_df = res_df.set_index('Vars')
 res_df.to_csv("../results/Iterative_imputer_test_40percent_nans_.csv")
-
-os.getcwd()
