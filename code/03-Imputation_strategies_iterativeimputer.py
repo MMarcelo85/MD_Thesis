@@ -157,7 +157,7 @@ cols =['years_education', 'year_birth', 'cognition', 'cdr_global',
 res = {i:[] for i in cols}
 res
 for col in range(len(cols)):
-    m, _ = test_iterative_imputer(test_df, cols[col], nan_size=.4 )
+    m, _ = test_iterative_imputer(test_df, cols[col], nan_size=.8 )
     res[cols[col]] = m
 
 
@@ -169,4 +169,4 @@ for i in res.keys():
 
 res_df['Vars'] = list(res.keys())
 res_df = res_df.set_index('Vars')
-res_df.to_csv("../results/Iterative_imputer_test_40percent_nans_.csv")
+res_df.to_csv("../results/Iterative_imputer_test_80percent_nans_.csv")
