@@ -169,4 +169,4 @@ for i in res.keys():
 
 res_df['Vars'] = list(res.keys())
 res_df = res_df.set_index('Vars')
-res_df.to_csv("../results/Iterative_imputer_test_80percent_nans_.csv")
+res_df.to_csv("../imp_results/Iterative_imputer_test_80percent_nans_.csv")

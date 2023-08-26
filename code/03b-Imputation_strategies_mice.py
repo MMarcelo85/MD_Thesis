@@ -101,8 +101,8 @@ def test_iterative_MICE(data, nan_column, scaler='MM', n_iter=1000, nan_size=.1)
         for n in range(len(n_datasets)):
             data_nan = data.copy()
             data_nan.loc[selected_rows, nan_column] = np.nan
-            for columna in test_df.columns[2:]:
-                 test_df[columna] = test_df[columna].astype('float32')
+            for columna in data_nan.select_dtypes(include=['float', 'int']).columns:
+                 data_nan[columna] = data_nan[columna].astype('float32')
 
             start = time.time()
             # Create kernels. 
@@ -151,5 +151,5 @@ for i in res.keys():
 
 res_df['Vars'] = list(res.keys())
 res_df = res_df.set_index('Vars')
-res_df.to_csv("../results/MICE_test_80percent_nans.csv")
+res_df.to_csv("../imp_results/MICE_test_80percent_nans.csv")
 
