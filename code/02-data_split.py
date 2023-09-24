@@ -48,6 +48,10 @@ df.diagnosis.value_counts()/df.shape[0]
 train.diagnosis.value_counts()/train.shape[0]
 test.diagnosis.value_counts()/test.shape[0]
 
+# final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education','cognition', 'functionality','ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'income_s_NaN', 'income_s_1', 'income_s_2', 'income_s_3', 'income_s_4', 'income_s_5', 'income_s_6', 'income_s_7', 'income_s_8', 'income_s_9', 'income_s_10', 'income_s_11', 'strata']
+
+# train = train[final_cols]
+# test = test[final_cols]
 #save train and test 
 train.to_csv("../data/train.csv", index=False)
 test.to_csv("../data/test.csv", index=False)
