@@ -63,17 +63,21 @@ os.getcwd()
 train = pd.read_csv("/home/marcelo/GitRepos/Tesis/data/train.csv")
 train.isna().sum()[train.isna().sum()>0]
 
-
-
+train.columns
 # Bayesian Ridge Imputation
+imputed_data = train.copy()
+diag_dummies = pd.get_dummies(imputed_data['diagnosis'])
+imputed_data = pd.concat([imputed_data, diag_dummies], axis=1)
+imputed_data = imputed_data.drop(['site', 'id', 'diagnosis', 'strata'], axis=1)
 imputer = IterativeImputer(estimator=BayesianRidge(n_iter=1000))
-imputer = imputer.fit(train)
-imputed_data = pd.DataFrame(imputer.transform(train), columns=train.columns, index=train.index)
+imputer = imputer.fit(imputed_data)
+imputed_data = pd.DataFrame(imputer.transform(imputed_data), columns = imputed_data.columns, index=imputed_data.index )
 imputed_data.isna().sum()
 
 ### Seleccionamos las columnas finales
 final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
 
+imputed_data = pd.concat([train[['site', 'id', 'diagnosis', 'strata']], imputed_data], axis=1)
 imputed_data = imputed_data[final_cols]
 
 #### Librerías 
@@ -85,10 +89,10 @@ import ml_bootstrap_clf as bc # boostraping classifiers
 from skopt.space import Categorical, Integer, Real 
 
 ### Split into AD and FTD
-train.drop(['site','id','strata'], axis=1, inplace=True)
-data = train.query("diagnosis != 'CN'")
-data['diagnosis'] = data['diagnosis'].replace({'AD':0, 'FTD':1})
-train.shape, data.shape
+imputed_data.drop(['site','id','strata'], axis=1, inplace=True)
+imputed_data = imputed_data.query("diagnosis != 'CN'")
+imputed_data['diagnosis'] = imputed_data['diagnosis'].replace({'AD':0, 'FTD':1})
+imputed_data.shape, train.shape
 
 ## Random Forest Hparams
 
