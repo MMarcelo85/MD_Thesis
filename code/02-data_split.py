@@ -55,3 +55,62 @@ test.diagnosis.value_counts()/test.shape[0]
 #save train and test 
 train.to_csv("../data/train.csv", index=False)
 test.to_csv("../data/test.csv", index=False)
+
+
+
+
+
+import pandas as pd
+
+
+def cutoff_inspector(data, groupvar, column, condition='>=', cutoff=24,  add_cutoff=False, column_name=None):
+    # Copiar el DataFrame original para no modificarlo
+    df = data.copy()
+    cutoff_str = str(cutoff) 
+    # Aplicar la condición
+    if condition == '<':
+        df[column+'_group'] = df[column] < cutoff
+        df['condition'] = df[column+'_group'].apply(lambda x: f'<{cutoff_str}' if x else f'>={cutoff_str}')
+    elif condition == '<=':
+        df[column+'_group'] = df[column] <= cutoff
+        df['condition'] = df[column+'_group'].apply(lambda x: f'<={cutoff_str}' if x else f'>{cutoff_str}')
+    elif condition == '>':
+        df[column+'_group'] = df[column] > cutoff
+        df['condition'] = df[column+'_group'].apply(lambda x: f'>{cutoff_str}' if x else f'<={cutoff_str}')
+    elif condition == '>=':
+        df[column+'_group'] = df[column] >= cutoff
+        df['condition'] = df[column+'_group'].apply(lambda x: f'>={cutoff_str}' if x else f'<{cutoff_str}')
+    else:
+        raise ValueError("La condición debe ser '<', '<=', '>', o '>='.")
+    df[column+'_group'] = df[column+'_group'].astype(int)
+    # Contar los casos
+    result = df.groupby([groupvar, column+'_group', 'condition']).size().reset_index(name='casos')
+    
+    # Calcular el total de casos por "diagnosis"
+    total_diagnosis = df.groupby(groupvar).size().reset_index(name='total_casos')
+    
+    # Combina los DataFrames resultantes para calcular los porcentajes
+    result = result.merge(total_diagnosis, on=groupvar)
+    
+    # Calcula los porcentajes y crea una columna "porcentaje"
+    result['porcentaje'] = (result['casos'] / result['total_casos']) * 100
+    
+    # Agregar columna de corte si es necesario
+    if add_cutoff:
+        if column_name is None:
+            column_name = column + '_cutoff'
+        df[column_name] = df[column+'_group'].astype(int)
+        data[column_name] = df[column_name]
+    
+    return result
+
+# Ejemplo de uso:
+result=cutoff_inspector(df, groupvar='diagnosis', column='mmse_total', condition='<', cutoff=25,  add_cutoff=True)
+result
+df.columns
+
+cutoff_inspector(df, groupvar='diagnosis', column='mmse_vs', condition='<=', cutoff=24,  add_cutoff=False)
+
+cutoff_inspector(df, groupvar='diagnosis', column='ace_vs', condition='<=', cutoff=82,  add_cutoff=False)
+
+cutoff_inspector(df, groupvar='diagnosis', column='moca_vs', condition='<=', cutoff=21,  add_cutoff=False)

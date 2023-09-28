@@ -56,12 +56,28 @@ except FileExistsError:
 
 # Data path
 data_path ='./Tesis/data/'
-# Data path
-data_path ='./Tesis/data/'
 os.getcwd()
-train = pd.read_csv("../data/train.csv")
-# test = pd.read_csv("./Tesis/data/test.csv")
+train = pd.read_csv("/home/marcelo/GitRepos/Tesis/data/train.csv")
 train.isna().sum()[train.isna().sum()>0]
+
+
+# MICE Imputation
+imputed_data = train.copy()
+diag_dummies = pd.get_dummies(imputed_data['diagnosis'])
+imputed_data = pd.concat([imputed_data, diag_dummies], axis=1)
+imputed_data = imputed_data.drop(['site', 'id', 'diagnosis', 'strata'], axis=1)
+
+# Run MICE
+kernel = mf.ImputationKernel(imputed_data, datasets=3, save_all_iterations=True, random_state=123)
+kernel.mice(3)
+imputed_data = kernel.complete_data(dataset=3-1)
+imputed_data.isna().sum().sum()
+
+### Seleccionamos las columnas finales
+final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+
+imputed_data = pd.concat([train[['site', 'id', 'diagnosis', 'strata']], imputed_data], axis=1)
+imputed_data = imputed_data[final_cols]
 
 #### Librerías 
 os.chdir("/home/marcelo/GitRepos/Tesis/code")
@@ -71,54 +87,29 @@ import ml_hparams_clf as bhs # Bayes search
 import ml_bootstrap_clf as bc # boostraping classifiers
 from skopt.space import Categorical, Integer, Real 
 
-#save train and test 
-# train.to_csv("../data/train.csv", index=False)
-train = train.drop(['site','id','strata'], axis=1)
-
 ### Split into AD and FTD
-data = train.query("diagnosis != 'CN'")
-data['diagnosis'] = data['diagnosis'].replace({'AD':0, 'FTD':1})
-train.shape
+imputed_data.drop(['site','id','strata'], axis=1, inplace=True)
+imputed_data = imputed_data.query("diagnosis != 'CN'")
+imputed_data['diagnosis'] = imputed_data['diagnosis'].replace({'AD':0, 'FTD':1})
+imputed_data.shape, train.shape
 
-# MICE Imputation
-
-kernel = mf.ImputationKernel(data, datasets=3, save_all_iterations=True, random_state=123)
-# Run MICE
-kernel.mice(3)
-imputed_data = kernel.complete_data(dataset=3-1)
-imputed_data.isna().sum().sum()
-imputed_data.drop(['nationality', 'country_of_residence'], axis=1, inplace=True)
 
 ## Random Forest Hparams
 
 rf_grid= {"n_estimators": Integer(low=25, high=500),
     "criterion": Categorical(['gini', 'entropy']),
-    "max_depth": Integer(low=1, high=14),
+    "max_depth": Integer(low=1, high=10),
     "min_samples_split": Real(low=0.01, high=0.99),
     "min_samples_leaf": Real(low=0.01, high=0.5),
-    "max_features":Integer(low=1, high=14)}
+    "max_features":Integer(low=1, high=10)}
 
 rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
 
 best, raw = bhs.hparams_search(imputed_data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('All Done!')
+print('RF: All Done!')
 # Save RF hparams
 raw.to_csv(path_hparams + "/MICE_RF_hparams.csv")
 
-## Support Vector Machies - RBF params
-svc_rbf ={'C':Real(low=0.001, high=10),
-          'gamma': Real(low=0.001, high=10)}
-svc_rbf_param = { "kernel":"rbf","class_weight":"balanced", "verbose":0}#, "cache_size":500}
-
-# Cache size its bugged since ever -> https://github.com/scikit-learn/scikit-learn/issues/8012
-# Hardcoded on /home/marcelo/anaconda3/envs/sklearn-env/lib/python3.8/site-packages/sklearn/svm/_classes.py
-# cache_size=4000
-
-best, raw = bhs.hparams_search(imputed_data, 'diagnosis', SVC(), svc_rbf, svc_rbf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('All Done!')
-
-# Save SVC RBF params 
-raw.to_csv(path_hparams + "/MICE_SVC_RBF_hparams2.csv")
 
 ## Support Vector Machies - Poly params
 svc_poly ={'C':Real(low=0.001, high=10),
@@ -128,48 +119,24 @@ svc_poly ={'C':Real(low=0.001, high=10),
 svc_poly_param = { "kernel":"poly","class_weight":"balanced", "verbose":0}#, "cache_size":500}
 
 best, raw = bhs.hparams_search(imputed_data, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('All Done!')
+print('SVC: All Done!')
 
 # Save poly params 
 raw.to_csv(path_hparams + "/MICE_SVC_Poly_hparams.csv")
 
-## Lightgbm - params
-lgbm_grid ={#     'boosting_type': Categorical(['gbdt', 'dart', 'goss', 'rf']),
-    'num_leaves': Integer(low=5, high=16),
-    'max_depth': Integer(low=2, high=16),
-    'learning_rate': Real(low=0.001, high=.3),
-    'n_estimators': Integer(low=50, high=250),
-    'reg_alpha':Real(low=0.1, high=.9),
-    'reg_lambda':Real(low=0.1, high=.9)}
-
-lgbm_param = {    'subsample':1.0,
-    'subsample_freq':-1,
-    'objective':'binary',
-#     'early_stopping_round':50,
-    'metric':'auc',
-#     'class_weight': 'balanced',
-    'n_jobs': -1,
-    'verbose':-1#,
-#     'categorical_feature': cat_cols
-}
-
-best, raw = bhs.hparams_search_lgbm(imputed_data, 'diagnosis', lgbm_grid, lgbm_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('All Done!')
-
-# Save Lightgbm params 
-raw.to_csv(path_hparams + "/MICE_lgbm_hparams.csv")
 
 ## XGBoost - params
+
 xgb_grid = {
     'booster': Categorical(['gbtree', 'dart']),
     'tree_method': [ 'approx', 'hist'],
-    'max_leaves': Integer(low=5, high=14),
+    'max_leaves': Integer(low=2, high=8),
     'max_depth': Integer(low=2, high=8),
-    'max_bin': Integer(low=5, high=14),
-    'learning_rate': Real(low=0.001, high=.3),
-    'n_estimators': Integer(low=50, high=500),
-    'reg_alpha':Real(low=0.1, high=.5),
-    'reg_lambda':Real(low=0.1, high=.5)
+    'max_bin': Integer(low=2, high=8),
+    'learning_rate': Real(low=0.01, high=.3),
+    'n_estimators': Integer(low=100, high=1000),
+    'reg_alpha':Real(low=0.1, high=.99),
+    'reg_lambda':Real(low=0.1, high=.99)
 }
 
 xgb_param = {
@@ -183,9 +150,41 @@ xgb_param = {
     'use_label_encoder':None
 }
 
+
 best, raw = bhs.hparams_search_xgb(imputed_data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('All Done!')
+print('Xgboost: All Done!')
 
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/MICE_xgb_hparams.csv")
 print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
+
+###########################################
+################## Only test cols
+train.columns
+
+final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality' ]
+
+imputed_data = imputed_data[final_cols2]
+
+#RF
+best, raw = bhs.hparams_search(imputed_data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+print('RF: All Done!')
+
+# Save RF hparams
+raw.to_csv(path_hparams + "/BR_RF_hparams_fcols2.csv")
+
+#Poly
+best, raw = bhs.hparams_search(imputed_data, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+print('SVC: All Done!')
+
+# Save poly params 
+raw.to_csv(path_hparams + "/BR_SVC_Poly_hparams_fcols2.csv")
+
+best, raw = bhs.hparams_search_xgb(imputed_data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+print('Xgboost: All Done!')
+
+# Save XGBoost params 
+raw.to_csv(path_hparams + "/BR_xgb_hparams_fcols2.csv")
+print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
+print("Finish!")
+
