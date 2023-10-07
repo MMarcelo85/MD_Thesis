@@ -62,6 +62,7 @@ test.to_csv("../data/test.csv", index=False)
 
 import pandas as pd
 
+# https://www.researchgate.net/publication/334295486_Validation_Study_of_the_Chinese_Version_of_Addenbrooke%27s_Cognitive_Examination_III_for_Diagnosing_Mild_Cognitive_Impairment_and_Mild_Dementia/figures?lo=1
 
 def cutoff_inspector(data, groupvar, column, condition='>=', cutoff=24,  add_cutoff=False, column_name=None):
     # Copiar el DataFrame original para no modificarlo
