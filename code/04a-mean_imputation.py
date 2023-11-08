@@ -92,7 +92,6 @@ data['diagnosis'] = data['diagnosis'].replace({'AD':0, 'FTD':1})
 train.shape, data.shape
 
 ## Random Forest Hparams
-
 rf_grid= {"n_estimators": Integer(low=25, high=500),
     "criterion": Categorical(['gini', 'entropy']),
     "max_depth": Integer(low=1, high=10),
@@ -122,35 +121,35 @@ raw.to_csv(path_hparams + "/SVC_Poly_hparams.csv")
 
 ## XGBoost - params
 xgb_grid = {
-    'booster': Categorical(['gbtree', 'dart']),
-    'tree_method': [ 'approx', 'hist'],
-    'max_leaves': Integer(low=2, high=8),
-    'max_depth': Integer(low=2, high=8),
-    'max_bin': Integer(low=2, high=8),
-    'learning_rate': Real(low=0.01, high=.3),
-    'n_estimators': Integer(low=100, high=1000),
-    'reg_alpha':Real(low=0.1, high=.99),
-    'reg_lambda':Real(low=0.1, high=.99)
+    'objective': Categorical(['binary:logistic']),
+        'eval_metric': Categorical(['logloss']),
+        'n_estimators': Integer([100, 500]),
+        'learning_rate': Real(0.01, 0.3),
+        'max_depth': Integer(3, 7),
+        'subsample': Real(0.8, 1.0),
+        'colsample_bytree': Real(0.8, 1.0),
+        'reg_alpha': Real(0, .8),
+        'reg_lambda': Real(0, .8),
+        'gamma': Real(0.001, 10.0)
 }
 
 xgb_param = {
-    'gamma': 0.005,
-    'subsample':1.0,
-    'enable_categorical':True, # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
+    #'enable_categorical':True, # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
     'n_jobs': -1,
     'verbosity':0,
     'eval_metric':'auc',
-    'objective':'binary:logistic',
     'use_label_encoder':None
 }
 
 best, raw = bhs.hparams_search_xgb(data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
+best
+raw[['param_max_depth', 'param_learning_rate', 'param_reg_alpha','param_reg_lambda','mean_test_score', 'mean_train_score']].head(5)
 
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/xgb_hparams.csv")
 print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
-
+best
 
 
 ###########################################
