@@ -72,7 +72,15 @@ for i in nan_cols:
 assert(train.isna().sum().sum() == 0)
 
 train.columns
-final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+
+
+# final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'moca_vs','ace_vs', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+
+# results of the upper final cols -> notebook: 05a-mean_pred-V2
+
+final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education', 'ifs_total_score','mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition',  'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+
+final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition', 'functionality' ]
 
 train = train[final_cols]
 
@@ -101,7 +109,7 @@ rf_grid= {"n_estimators": Integer(low=25, high=500),
 
 rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
 
-best, raw = bhs.hparams_search(data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search(data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
 # Save RF hparams
 raw.to_csv(path_hparams + "/RF_hparams.csv")
@@ -125,7 +133,7 @@ xgb_grid = {
         'eval_metric': Categorical(['logloss']),
         'n_estimators': Integer(low=100, high=1000),
         'learning_rate': Real(low=0.1, high=0.3),
-        'max_depth': Integer(low=4, high=10),
+        'max_depth': Integer(low=2, high=10),
         # 'subsample': Real(0.8, 1.0),
         'colsample_bytree': [0.4, 0.6, 0.8, 1.0],
         'min_child_weight': [15, 20, 25, 30]
@@ -143,14 +151,13 @@ xgb_param = {
     'use_label_encoder':None
 }
 
-best, raw = bhs.hparams_search_xgb(data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search_xgb(data, 'diagnosis', xgb_grid, xgb_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
 best
 raw[['param_max_depth', 'param_learning_rate', 'param_colsample_bytree','param_min_child_weight','mean_test_score', 'mean_train_score']].head(5)
 raw
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/xgb_hparams.csv")
-print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
 best
 
 
@@ -158,9 +165,7 @@ best
 ################## Only test cols
 train.columns
 
-final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality' ]
-
-train = train[final_cols2]
+data2 = data[final_cols2].copy()
 
 ## Random Forest Hparams
 
@@ -173,7 +178,7 @@ rf_grid= {"n_estimators": Integer(low=25, high=500),
 
 rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
 
-best, raw = bhs.hparams_search(data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search(data2, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
 # Save RF hparams
 raw.to_csv(path_hparams + "/RF_hparams_fcols2.csv")
@@ -185,7 +190,7 @@ svc_poly ={'C':Real(low=0.001, high=10),
           'coef0': Integer(low=0, high=100)}
 svc_poly_param = { "kernel":"poly","class_weight":"balanced", "verbose":0}#, "cache_size":500}
 
-best, raw = bhs.hparams_search(data, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search(data2, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
 
 # Save poly params 
@@ -197,7 +202,7 @@ xgb_grid = {
         'eval_metric': Categorical(['logloss']),
         'n_estimators': Integer([100, 1000]),
         'learning_rate': Real(0.1, 0.3),
-        'max_depth': Integer(4, 10),
+        'max_depth': Integer(2, 6),
         # 'subsample': Real(0.8, 1.0),
         'colsample_bytree': (0.4, 0.6, 0.8, 1.0),
         'min_child_weight': (10, 15, 20, 25, 30)
@@ -215,10 +220,10 @@ xgb_param = {
     'use_label_encoder':None
 }
 
-best, raw = bhs.hparams_search_xgb(data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search_xgb(data2, 'diagnosis', xgb_grid, xgb_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('All Done!')
 
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/xgb_hparams_fcols2.csv")
-print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
+print("##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! #####")
 print("################################")

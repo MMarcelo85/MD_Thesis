@@ -74,7 +74,9 @@ imputed_data = kernel.complete_data(dataset=3-1)
 imputed_data.isna().sum().sum()
 
 ### Seleccionamos las columnas finales
-final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education', 'ifs_total_score','mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition',  'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+
+final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition', 'functionality' ]
 
 imputed_data = pd.concat([train[['site', 'id', 'diagnosis', 'strata']], imputed_data], axis=1)
 imputed_data = imputed_data[final_cols]
@@ -105,11 +107,10 @@ rf_grid= {"n_estimators": Integer(low=25, high=500),
 
 rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
 
-best, raw = bhs.hparams_search(imputed_data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('RF: All Done!')
+best, raw = bhs.hparams_search(imputed_data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+
 # Save RF hparams
 raw.to_csv(path_hparams + "/MICE_RF_hparams.csv")
-
 
 ## Support Vector Machies - Poly params
 svc_poly ={'C':Real(low=0.001, high=10),
@@ -119,72 +120,96 @@ svc_poly ={'C':Real(low=0.001, high=10),
 svc_poly_param = { "kernel":"poly","class_weight":"balanced", "verbose":0}#, "cache_size":500}
 
 best, raw = bhs.hparams_search(imputed_data, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('SVC: All Done!')
 
 # Save poly params 
 raw.to_csv(path_hparams + "/MICE_SVC_Poly_hparams.csv")
 
-
 ## XGBoost - params
 
 xgb_grid = {
-    'booster': Categorical(['gbtree', 'dart']),
-    'tree_method': [ 'approx', 'hist'],
-    'max_leaves': Integer(low=2, high=8),
-    'max_depth': Integer(low=2, high=8),
-    'max_bin': Integer(low=2, high=8),
-    'learning_rate': Real(low=0.01, high=.3),
-    'n_estimators': Integer(low=100, high=1000),
-    'reg_alpha':Real(low=0.1, high=.99),
-    'reg_lambda':Real(low=0.1, high=.99)
+    'objective': Categorical(['binary:logistic']),
+        'eval_metric': Categorical(['logloss']),
+        'n_estimators': Integer(low=100, high=1000),
+        'learning_rate': Real(low=0.1, high=0.3),
+        'max_depth': Integer(low=2, high=10),
+        # 'subsample': Real(0.8, 1.0),
+        'colsample_bytree': [0.4, 0.6, 0.8, 1.0],
+        'min_child_weight': [15, 20, 25, 30]
+        # 'reg_alpha': Real(0, .8),
+        # 'reg_lambda': Real(0, .8),
+        # 'gamma': Real(0.001, 10.0)
 }
 
 xgb_param = {
-    'gamma': 0.005,
-    'subsample':1.0,
-    'enable_categorical':True, # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
+    #'enable_categorical':True, # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
+    'subsample':1.0, 'gamma': 1.0,
     'n_jobs': -1,
     'verbosity':0,
     'eval_metric':'auc',
-    'objective':'binary:logistic',
     'use_label_encoder':None
 }
 
 
-best, raw = bhs.hparams_search_xgb(imputed_data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+best, raw = bhs.hparams_search_xgb(imputed_data, 'diagnosis', xgb_grid, xgb_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('Xgboost: All Done!')
 
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/MICE_xgb_hparams.csv")
-print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
 
 ###########################################
 ################## Only test cols
-train.columns
 
-final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'mmse_lw', 'moca_vs', 'moca_lw','ace_vs', 'ace_lw', 'barthel_total', 'pfeffer_total','cognition', 'functionality' ]
+imputed_data2 = imputed_data[final_cols2].copy()
 
-imputed_data = imputed_data[final_cols2]
+## Random Forest Hparams
+rf_grid= {"n_estimators": Integer(low=25, high=500),
+    "criterion": Categorical(['gini', 'entropy']),
+    "max_depth": Integer(low=1, high=6),
+    "min_samples_split": Real(low=0.01, high=0.99),
+    "min_samples_leaf": Real(low=0.01, high=0.5),
+    "max_features":Integer(low=1, high=6)}
+
+rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
 
 #RF
-best, raw = bhs.hparams_search(imputed_data, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('RF: All Done!')
-
+best, raw = bhs.hparams_search(imputed_data2, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 # Save RF hparams
-raw.to_csv(path_hparams + "/BR_RF_hparams_fcols2.csv")
+raw.to_csv(path_hparams + "/MICE_RF_hparams_fcols2.csv")
 
 #Poly
-best, raw = bhs.hparams_search(imputed_data, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
-print('SVC: All Done!')
+best, raw = bhs.hparams_search(imputed_data2, 'diagnosis', SVC(), svc_poly, svc_poly_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 
 # Save poly params 
-raw.to_csv(path_hparams + "/BR_SVC_Poly_hparams_fcols2.csv")
+raw.to_csv(path_hparams + "/MICE_SVC_Poly_hparams_fcols2.csv")
 
-best, raw = bhs.hparams_search_xgb(imputed_data, 'diagnosis', xgb_grid, xgb_param, scaler='none', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+## XGBoost - params
+xgb_grid = {
+    'objective': Categorical(['binary:logistic']),
+        'eval_metric': Categorical(['logloss']),
+        'n_estimators': Integer([100, 1000]),
+        'learning_rate': Real(0.1, 0.3),
+        'max_depth': Integer(2, 6),
+        # 'subsample': Real(0.8, 1.0),
+        'colsample_bytree': (0.4, 0.6, 0.8, 1.0),
+        'min_child_weight': (10, 15, 20, 25, 30)
+        # 'reg_alpha': Real(0, .8),
+        # 'reg_lambda': Real(0, .8),
+        # 'gamma': Real(0.001, 10.0)
+}
+
+xgb_param = {
+    #'enable_categorical':True, # Supported tree methods are `gpu_hist`, `approx`, and `hist`.
+    'subsample':1.0, 'gamma': 1.0,
+    'n_jobs': -1,
+    'verbosity':0,
+    'eval_metric':'auc',
+    'use_label_encoder':None
+}
+
+best, raw = bhs.hparams_search_xgb(imputed_data2, 'diagnosis', xgb_grid, xgb_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
 print('Xgboost: All Done!')
 
 # Save XGBoost params 
-raw.to_csv(path_hparams + "/BR_xgb_hparams_fcols2.csv")
-print("##### ALL DONE! ##### ##### ALL DONE! ##### ##### ALL DONE! #####")
-print("Finish!")
-
+raw.to_csv(path_hparams + "/MICE_xgb_hparams_fcols2.csv")
+print("##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! #####")
+print("################################")
