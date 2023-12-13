@@ -76,9 +76,9 @@ imputed_data.isna().sum()
 
 ### Seleccionamos las columnas finales
 
-final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education', 'ifs_total_score','mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition',  'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'moca_vs','ace_vs', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
 
-final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition', 'functionality' ]
+final_cols2 = ['diagnosis', 'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'moca_vs','ace_vs', 'functionality' ]
 
 imputed_data = pd.concat([train[['site', 'id', 'diagnosis', 'strata']], imputed_data], axis=1)
 imputed_data = imputed_data[final_cols]

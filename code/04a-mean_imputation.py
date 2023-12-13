@@ -78,9 +78,11 @@ train.columns
 
 # results of the upper final cols -> notebook: 05a-mean_pred-V2
 
-final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education', 'ifs_total_score','mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition',  'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
+final_cols = ['site', 'id', 'diagnosis', 'year_birth', 'sex', 'years_education',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'moca_vs','ace_vs', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status', 'strata']
 
-final_cols2 = ['diagnosis',  'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition', 'functionality' ]
+final_cols2 = ['diagnosis', 'ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'mmse_vs', 'moca_vs','ace_vs', 'functionality' ]
+
+final_cols3 = ['diagnosis', 'year_birth', 'sex', 'years_education','ifs_total_score', 'mini_sea_total', 'npi_total', 'npi_total_caregiver', 'cognition', 'functionality', 'marital_status', 'n_children', 'household_members', 'household_income', 'Job_status' ]
 
 train = train[final_cols]
 
@@ -226,4 +228,30 @@ print('All Done!')
 # Save XGBoost params 
 raw.to_csv(path_hparams + "/xgb_hparams_fcols2.csv")
 print("##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! ##### ##### Only Test columns  DONE! #####")
+print("################################")
+
+
+###########################################
+################## with Cognition col
+train.columns
+path_hparams = 'pred_results/2023-11-25'
+data3 = data[final_cols3].copy()
+
+## Random Forest Hparams
+
+rf_grid= {"n_estimators": Integer(low=25, high=500),
+    "criterion": Categorical(['gini', 'entropy']),
+    "max_depth": Integer(low=1, high=6),
+    "min_samples_split": Real(low=0.01, high=0.99),
+    "min_samples_leaf": Real(low=0.01, high=0.5),
+    "max_features":Integer(low=1, high=6)}
+
+rf_param = { "class_weight":"balanced", "verbose":0, "n_jobs":-1}
+
+best, raw = bhs.hparams_search(data3, 'diagnosis', RandomForestClassifier(), rf_grid, rf_param, scaler='MM', test_size= .2, cv=StratifiedKFold(5, shuffle=True), n_iter=100)
+print('All Done!')
+# Save RF hparams
+raw.to_csv("../pred_results/2023-11-25/mean_hparams/RF_hparams_fcols3.csv")
+
+print("##### Only RF -> Cognition column  DONE! ")
 print("################################")
